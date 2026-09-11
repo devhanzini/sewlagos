@@ -29,7 +29,7 @@ DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sewlagos.db
 # Get keys from https://app.flutterwave.com → Settings → API Keys
 FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "")
 FLW_PUBLIC_KEY = os.environ.get("FLW_PUBLIC_KEY", "")
-FLW_SECRET_HASH = os.environ.get("FLW_SECRET_HASH", "sewlagos_webhook_hash")  # Set this in Flutterwave dashboard
+FLW_SECRET_HASH = os.environ.get("FLW_SECRET_HASH", "")  # Set this in Flutterwave dashboard
 FLW_BASE_URL = "https://api.flutterwave.com/v3"
 
 # Fixed delivery fee
@@ -780,7 +780,7 @@ def flutterwave_webhook():
     Also set a Secret Hash and put the same value in FLW_SECRET_HASH env var.
     """
     secret_hash = request.headers.get("verif-hash", "")
-    if secret_hash != FLW_SECRET_HASH:
+    if not FLW_SECRET_HASH or not hmac.compare_digest(secret_hash, FLW_SECRET_HASH):
         return jsonify({"status": "invalid hash"}), 401
 
     try:
@@ -791,14 +791,19 @@ def flutterwave_webhook():
     # Flutterwave sends different event structures; handle successful charge
     data = event.get("data") or event
     status = data.get("status") or event.get("event")
-    if status in ("successful", "charge.completed"):
-        tx_ref = data.get("tx_ref") or data.get("txRef")
-        amount = float(data.get("amount", 0))
-        meta = data.get("meta") or {}
-        user_id = meta.get("user_id")
+    transaction_id = data.get("id")
+    if status in ("successful", "charge.completed") and transaction_id:
+        # Never trust amount/user/tx_ref straight from the webhook body -
+        # re-verify the transaction against Flutterwave's API first.
+        verified = flw_verify(transaction_id)
+        if verified:
+            tx_ref = verified.get("tx_ref")
+            amount = float(verified.get("amount", 0))
+            meta = verified.get("meta") or {}
+            user_id = meta.get("user_id")
 
-        if user_id and tx_ref:
-            credit_wallet(int(user_id), amount, tx_ref, "Wallet funding via Flutterwave (webhook)")
+            if user_id and tx_ref:
+                credit_wallet(int(user_id), amount, tx_ref, "Wallet funding via Flutterwave (webhook)")
 
     return jsonify({"status": "ok"}), 200
 
