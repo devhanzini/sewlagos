@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Welcome, {{ user.full_name }}</h3>
+        <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary btn-sm">Profile & Settings</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="wallet-balance">
+                <p class="mb-1 opacity-75">Wallet Balance</p>
+                <h3 class="mb-0">₦{{ "{:,.0f}".format(user.wallet_balance) }}</h3>
+                <a href="{{ url_for('wallet') }}" class="text-white small">Manage wallet →</a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Phone</p>
+                    <h5>{{ user.phone }} {% if user.phone_verified %}<i class="bi bi-check-circle-fill text-success"></i>{% endif %}</h5>
+                    <p class="small mb-0">{{ user.lga or 'Lagos' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Quick Actions</p>
+                    <a href="{{ url_for('catalog') }}" class="btn btn-sm btn-naija me-1">New Order</a>
+                    <a href="{{ url_for('calendar') }}" class="btn btn-sm btn-outline-secondary">Calendar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between">
+                    <strong>Recent Orders</strong>
+                </div>
+                <div class="card-body p-0">
+                    {% if orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Order #</th><th>Date</th><th>Amount</th><th>Status</th><th>Delivery</th><th></th></tr></thead>
+                            <tbody>
+                            {% for o in orders %}
+                            <tr>
+                                <td><a href="{{ url_for('order_detail', order_id=o.id) }}">{{ o.order_number }}</a></td>
+                                <td class="small">{{ o.created_at[:10] }}</td>
+                                <td>₦{{ "{:,.0f}".format(o.total_amount) }}</td>
+                                <td><span class="badge status-{{ o.status }}">{{ o.status.replace('_',' ') }}</span></td>
+                                <td class="small">{{ o.preferred_delivery_date }} ({{ o.delivery_slot }})</td>
+                                <td>
+                                    {% if o.receipt_number %}
+                                    <a href="{{ url_for('receipt', order_id=o.id) }}" class="btn btn-sm btn-outline-secondary">Receipt</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="p-4 text-muted">No orders yet. <a href="{{ url_for('catalog') }}">Start shopping</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Notifications</strong></div>
+                <div class="list-group list-group-flush">
+                    {% for n in notifications %}
+                    <div class="list-group-item {% if not n.is_read %}bg-light{% endif %}">
+                        <div class="fw-semibold small">{{ n.title }}</div>
+                        <div class="small text-muted">{{ n.message[:80] }}{% if n.message|length > 80 %}...{% endif %}</div>
+                        <div class="text-muted" style="font-size:0.7rem;">{{ n.created_at[:16] }}</div>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-muted small">No notifications</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

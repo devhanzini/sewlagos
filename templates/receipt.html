@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Receipt{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="card border-0 shadow mx-auto" style="max-width:640px;">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h4 class="mb-0"><i class="bi bi-scissors"></i> SewLagos</h4>
+                    <small class="text-muted">Lagos, Nigeria</small>
+                </div>
+                <div class="text-end">
+                    <h5 class="mb-0">RECEIPT</h5>
+                    <small>{{ receipt.receipt_number if receipt else '—' }}</small>
+                </div>
+            </div>
+            <hr>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <strong>Customer</strong><br>
+                    {{ order.full_name }}<br>
+                    {{ order.phone }}<br>
+                    {{ order.email or '' }}
+                </div>
+                <div class="col-6 text-end">
+                    <strong>Order</strong><br>
+                    {{ order.order_number }}<br>
+                    {{ order.created_at[:16] }}<br>
+                    Status: {{ order.status }}
+                </div>
+            </div>
+            <table class="table table-sm">
+                <thead><tr><th>Item</th><th class="text-end">Qty</th><th class="text-end">Amount</th></tr></thead>
+                <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.product_name }}</td>
+                    <td class="text-end">{{ item.quantity }}</td>
+                    <td class="text-end">₦{{ "{:,.0f}".format(item.unit_price * item.quantity) }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td colspan="2">Delivery Fee</td>
+                    <td class="text-end">₦{{ "{:,.0f}".format(order.delivery_fee) }}</td>
+                </tr>
+                <tr class="fw-bold">
+                    <td colspan="2">Total</td>
+                    <td class="text-end">₦{{ "{:,.0f}".format(order.total_amount) }}</td>
+                </tr>
+                </tbody>
+            </table>
+            <p class="small text-muted mb-1">Payment: {{ order.payment_method }} ({{ order.payment_status }})</p>
+            <p class="small text-muted mb-1">Delivery: {{ slots.get(order.delivery_slot) }} on {{ order.preferred_delivery_date }}</p>
+            <p class="small text-muted">Address: {{ order.delivery_address }}, {{ order.delivery_lga }}</p>
+            <hr>
+            <p class="text-center small mb-0">Thank you for choosing SewLagos. For support: hello@sewlagos.ng</p>
+            <div class="text-center mt-3">
+                <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">Print Receipt</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

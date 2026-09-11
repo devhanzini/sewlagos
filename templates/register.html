@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0">
+                <div class="card-body p-4">
+                    <h3 class="mb-1">Create Account</h3>
+                    <p class="text-muted small mb-4">Join SewLagos – Lagos based sewing & delivery</p>
+                    <form method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" name="full_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number * <small class="text-muted">(Nigerian)</small></label>
+                            <input type="tel" name="phone" class="form-control" placeholder="+2348012345678 or 08012345678" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password *</label>
+                            <input type="password" name="password" class="form-control" minlength="6" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Delivery Address (Lagos)</label>
+                            <textarea name="address" class="form-control" rows="2" placeholder="Street, Area..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">LGA</label>
+                            <select name="lga" class="form-select">
+                                <option value="">Select LGA</option>
+                                <option>Ikeja</option><option>Surulere</option><option>Lagos Island</option>
+                                <option>Eti-Osa</option><option>Alimosho</option><option>Agege</option>
+                                <option>Mushin</option><option>Oshodi-Isolo</option><option>Kosofe</option>
+                                <option>Shomolu</option><option>Yaba</option><option>Apapa</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-naija w-100">Register & Verify Phone</button>
+                    </form>
+                    <p class="text-center mt-3 mb-0 small">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

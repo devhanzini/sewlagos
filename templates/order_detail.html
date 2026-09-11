@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.order_number }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Order {{ order.order_number }}</h3>
+        {% if receipt %}
+        <a href="{{ url_for('receipt', order_id=order.id) }}" class="btn btn-outline-secondary"><i class="bi bi-receipt"></i> View Receipt</a>
+        {% endif %}
+    </div>
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <span class="badge status-{{ order.status }} mb-2">{{ order.status.replace('_',' ') | title }}</span>
+                    <p class="mb-1"><strong>Payment:</strong> {{ order.payment_status }} ({{ order.payment_method }})</p>
+                    <p class="mb-1"><strong>Total:</strong> ₦{{ "{:,.0f}".format(order.total_amount) }} (incl. ₦{{ "{:,.0f}".format(order.delivery_fee) }} delivery)</p>
+                    <p class="mb-1"><strong>Delivery Slot:</strong> {{ slots.get(order.delivery_slot, order.delivery_slot) }} on {{ order.preferred_delivery_date }}</p>
+                    <p class="mb-0"><strong>Address:</strong> {{ order.delivery_address }}, {{ order.delivery_lga }}</p>
+                </div>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Items</strong></div>
+                <ul class="list-group list-group-flush">
+                    {% for item in items %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <div>
+                            <strong>{{ item.product_name }}</strong>
+                            {% if item.customization %}<br><small class="text-muted">{{ item.customization }}</small>{% endif %}
+                            <br><small>Qty: {{ item.quantity }} • Production: {{ item.production_days }} days</small>
+                        </div>
+                        <div class="text-end">₦{{ "{:,.0f}".format(item.unit_price * item.quantity) }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Status Timeline</strong></div>
+                <div class="card-body">
+                    {% for h in history %}
+                    <div class="mb-3 border-start border-3 border-success ps-3">
+                        <div class="fw-semibold">{{ h.new_status.replace('_',' ') | title }}</div>
+                        <div class="small text-muted">{{ h.created_at[:16] }}</div>
+                        {% if h.notes %}<div class="small">{{ h.notes }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

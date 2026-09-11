@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Place Order{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3>Order: {{ product.name }}</h3>
+    <div class="row g-4">
+        <div class="col-md-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" name="quantity" class="form-control" value="1" min="1" max="10">
+                        </div>
+                        {% if product.is_custom %}
+                        <div class="mb-3">
+                            <label class="form-label">Customization / Specs</label>
+                            <textarea name="customization" class="form-control" rows="2" placeholder="Fabric preference, color, special notes, measurements if known..."></textarea>
+                        </div>
+                        {% endif %}
+                        <div class="mb-3">
+                            <label class="form-label">Delivery Slot *</label>
+                            <select name="delivery_slot" class="form-select" required>
+                                {% for key, label in slots.items() %}
+                                <option value="{{ key }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Earliest ready around {{ ready_date.strftime('%d %b %Y') }}. We schedule the nearest available slot after production.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Delivery Address</label>
+                            <textarea name="address" class="form-control" rows="2">{{ user.address or '' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">LGA</label>
+                            <input type="text" name="lga" class="form-control" value="{{ user.lga or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Order Notes</label>
+                            <textarea name="notes" class="form-control" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-naija">Continue to Payment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <h5>Order Summary</h5>
+                    <p class="mb-1">{{ product.name }}</p>
+                    <p class="price">₦{{ "{:,.0f}".format(product.base_price) }}</p>
+                    <hr>
+                    <p class="d-flex justify-content-between"><span>Item</span><span>₦{{ "{:,.0f}".format(product.base_price) }}</span></p>
+                    <p class="d-flex justify-content-between"><span>Delivery (Lagos)</span><span>₦{{ "{:,.0f}".format(delivery_fee) }}</span></p>
+                    <hr>
+                    <p class="d-flex justify-content-between fw-bold"><span>Total</span><span>₦{{ "{:,.0f}".format(product.base_price + delivery_fee) }}</span></p>
+                    <p class="small text-muted mb-0">Production: ~{{ product.production_days }} days • Ready ~{{ ready_date.strftime('%d %b') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

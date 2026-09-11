@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3>Profile & Settings</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="full_name" class="form-control" value="{{ user.full_name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" class="form-control" value="{{ user.phone }}" disabled>
+                            <small class="text-muted">Verified {% if user.phone_verified %}<i class="bi bi-check-circle text-success"></i>{% endif %}</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ user.email or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Delivery Address</label>
+                            <textarea name="address" class="form-control" rows="2">{{ user.address or '' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">LGA</label>
+                            <input type="text" name="lga" class="form-control" value="{{ user.lga or '' }}">
+                        </div>
+                        <button type="submit" class="btn btn-naija">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

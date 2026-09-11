@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('catalog') }}">Catalog</a></li>
+            <li class="breadcrumb-item">{{ product.cat_name }}</li>
+            <li class="breadcrumb-item active">{{ product.name }}</li>
+        </ol>
+    </nav>
+    <div class="row g-4">
+        <div class="col-md-5">
+            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height:360px;">
+                <i class="bi bi-image text-muted" style="font-size:5rem;"></i>
+            </div>
+            <p class="text-muted small mt-2 text-center">Design preview (Nigerian-inspired)</p>
+        </div>
+        <div class="col-md-7">
+            <h2>{{ product.name }}</h2>
+            <p class="text-muted">{{ product.subcat_name }} • {{ product.fabric_type }}</p>
+            <p class="price display-6">₦{{ "{:,.0f}".format(product.base_price) }}</p>
+            <p>{{ product.description }}</p>
+            <ul class="list-unstyled">
+                <li><i class="bi bi-clock text-success"></i> Production time: <strong>~{{ product.production_days }} days</strong></li>
+                <li><i class="bi bi-calendar-event text-success"></i> Earliest ready: <strong>{{ ready_date.strftime('%d %b %Y') }}</strong></li>
+                <li><i class="bi bi-truck text-success"></i> Delivery fee: <strong>₦1,000</strong> (fixed, all Lagos)</li>
+                <li><i class="bi bi-clock-history text-success"></i> Slots: Morning 9–12 • Afternoon 12–3 • Evening 3–6</li>
+            </ul>
+            {% if product.is_custom %}
+            <div class="alert alert-info small">This design supports custom measurements & fabric preferences.</div>
+            {% endif %}
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('place_order', product_id=product.id) }}" class="btn btn-naija btn-lg">Order Now</a>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-naija btn-lg">Login to Order</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

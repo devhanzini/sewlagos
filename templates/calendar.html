@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Order Calendar{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3>Delivery & Production Calendar</h3>
+    <p class="text-muted">Track your orders and view available delivery slots in Lagos.</p>
+
+    <h5 class="mt-4">Your Upcoming Orders</h5>
+    {% if upcoming %}
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered">
+            <thead class="table-light"><tr><th>Order</th><th>Product</th><th>Status</th><th>Delivery Date</th><th>Slot</th></tr></thead>
+            <tbody>
+            {% for o in upcoming %}
+            <tr>
+                <td><a href="{{ url_for('order_detail', order_id=o.id) }}">{{ o.order_number }}</a></td>
+                <td>{{ o.product_name }}</td>
+                <td><span class="badge status-{{ o.status }}">{{ o.status.replace('_',' ') }}</span></td>
+                <td>{{ o.preferred_delivery_date }}</td>
+                <td>{{ slots.get(o.delivery_slot, o.delivery_slot) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No upcoming deliveries.</p>
+    {% endif %}
+
+    <h5 class="mt-4">Next 14 Days – Delivery Slot Availability</h5>
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered text-center">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Morning (9–12)</th>
+                    <th>Afternoon (12–3)</th>
+                    <th>Evening (3–6)</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for day in days %}
+            <tr>
+                <td class="text-start">{{ day.date.strftime('%a %d %b') }}</td>
+                {% for s in ['morning','afternoon','evening'] %}
+                <td>
+                    {% set info = day.slots[s] %}
+                    {% if info.booked >= info.max %}
+                    <span class="badge bg-danger">Full</span>
+                    {% else %}
+                    <span class="badge bg-success">{{ info.booked }}/{{ info.max }}</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="small text-muted">Green = available capacity. Capacity is managed per slot to ensure reliable Lagos deliveries.</p>
+</div>
+{% endblock %}

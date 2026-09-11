@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Wallet{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3>SewLagos Wallet</h3>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="wallet-balance">
+                <p class="mb-1 opacity-75">Available Balance</p>
+                <h2 class="mb-0">₦{{ "{:,.0f}".format(user.wallet_balance) }}</h2>
+            </div>
+            <div class="card mt-3 border-0 shadow-sm">
+                <div class="card-body">
+                    <h6>Fund Wallet with Paystack</h6>
+                    <p class="small text-muted">Pay with Card, Bank Transfer or USSD. Minimum ₦500.</p>
+                    <form method="post">
+                        <div class="mb-2">
+                            <input type="number" name="amount" class="form-control" placeholder="Amount (₦)" min="500" step="100" required>
+                        </div>
+                        <button type="submit" class="btn btn-naija w-100">
+                            <i class="bi bi-credit-card"></i> Pay with Paystack
+                        </button>
+                    </form>
+                    <p class="small text-muted mt-3 mb-0">
+                        Secured by Paystack. You will be redirected to complete payment.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong>Transaction History</strong></div>
+                <div class="card-body p-0">
+                    {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead>
+                            <tbody>
+                            {% for t in transactions %}
+                            <tr>
+                                <td class="small">{{ t.created_at[:16] }}</td>
+                                <td><span class="badge {% if t.type=='credit' %}bg-success{% else %}bg-danger{% endif %}">{{ t.type }}</span></td>
+                                <td>₦{{ "{:,.0f}".format(t.amount) }}</td>
+                                <td>₦{{ "{:,.0f}".format(t.balance_after) }}</td>
+                                <td class="small">{{ t.description }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="p-4 text-muted mb-0">No transactions yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

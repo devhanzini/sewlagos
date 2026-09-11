@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Pay for Order{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3>Payment – {{ order.order_number }}</h3>
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <p>Total amount: <span class="price">₦{{ "{:,.0f}".format(order.total_amount) }}</span></p>
+                    <p>Your wallet balance: <strong>₦{{ "{:,.0f}".format(user.wallet_balance) }}</strong></p>
+                    <form method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_method" value="wallet" id="wallet" checked>
+                                <label class="form-check-label" for="wallet">Pay with Wallet (instant)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_method" value="bank_transfer" id="bank">
+                                <label class="form-check-label" for="bank">Bank Transfer (manual confirmation)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payment_method" value="cash_on_delivery" id="cod">
+                                <label class="form-check-label" for="cod">Cash on Delivery</label>
+                            </div>
+                        </div>
+                        {% if user.wallet_balance < order.total_amount %}
+                        <div class="alert alert-warning small">Insufficient wallet balance. <a href="{{ url_for('wallet') }}">Fund wallet</a> first for instant payment.</div>
+                        {% endif %}
+                        <button type="submit" class="btn btn-naija">Confirm Payment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <h6>Order Details</h6>
+                    <p class="mb-1">Delivery slot: {{ slots.get(order.delivery_slot, order.delivery_slot) }}</p>
+                    <p class="mb-1">Preferred date: {{ order.preferred_delivery_date }}</p>
+                    <p class="mb-0">Address: {{ order.delivery_address }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
