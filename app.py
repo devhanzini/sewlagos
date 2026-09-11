@@ -25,11 +25,12 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "REDACTED-ROTATED-SECRET-KEY")
 DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sewlagos.db")
 
-# ---------- Paystack Configuration ----------
-# Get free test keys from https://dashboard.paystack.com/#/settings/developers
-PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY", "sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-PAYSTACK_PUBLIC_KEY = os.environ.get("PAYSTACK_PUBLIC_KEY", "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-PAYSTACK_BASE_URL = "https://api.paystack.co"
+# ---------- Flutterwave Configuration ----------
+# Get keys from https://app.flutterwave.com → Settings → API Keys
+FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "FLWPUBK_TEST-REDACTED-ROTATE-THIS-KEY")
+FLW_PUBLIC_KEY = os.environ.get("FLW_PUBLIC_KEY", "FLWSECK_TEST-REDACTED-ROTATE-THIS-KEY")
+FLW_SECRET_HASH = os.environ.get("FLW_SECRET_HASH", "sewlagos_webhook_hash")  # Set this in Flutterwave dashboard
+FLW_BASE_URL = "https://api.flutterwave.com/v3"
 
 # Fixed delivery fee
 DELIVERY_FEE = 1000.00
@@ -41,65 +42,79 @@ SLOTS = {
     "evening": "3:00 PM – 6:00 PM"
 }
 
-# ---------- Paystack Helpers ----------
-def paystack_headers():
+# ---------- Flutterwave Helpers ----------
+def flw_headers():
     return {
-        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
+        "Authorization": f"Bearer {FLW_SECRET_KEY}",
         "Content-Type": "application/json"
     }
 
-def paystack_initialize(email, amount_naira, reference, callback_url, metadata=None):
-    """Initialize a Paystack transaction. Amount must be in Naira (we convert to kobo)."""
-    amount_kobo = int(round(float(amount_naira) * 100))
+def flw_initialize(email, amount_naira, reference, callback_url, customer_name=None, phone=None, meta=None):
+    """Initialize a Flutterwave payment. Amount is in Naira."""
     payload = {
-        "email": email or "customer@sewlagos.ng",
-        "amount": amount_kobo,
+        "tx_ref": reference,
+        "amount": str(int(round(float(amount_naira)))),
         "currency": "NGN",
-        "reference": reference,
-        "callback_url": callback_url,
-        "metadata": metadata or {}
+        "redirect_url": callback_url,
+        "payment_options": "card,banktransfer,ussd",
+        "customer": {
+            "email": email or "customer@sewlagos.ng",
+            "name": customer_name or "SewLagos Customer",
+            "phonenumber": phone or ""
+        },
+        "customizations": {
+            "title": "SewLagos Wallet Funding",
+            "description": "Fund your SewLagos wallet",
+            "logo": ""
+        },
+        "meta": meta or {}
     }
     try:
         resp = http_requests.post(
-            f"{PAYSTACK_BASE_URL}/transaction/initialize",
-            headers=paystack_headers(),
+            f"{FLW_BASE_URL}/payments",
+            headers=flw_headers(),
             json=payload,
-            timeout=15
+            timeout=20
         )
         data = resp.json()
-        if data.get("status") is True:
-            return data["data"]  # contains authorization_url, access_code, reference
+        if data.get("status") == "success":
+            return data["data"]  # contains link, etc.
         return {"error": data.get("message", "Failed to initialize payment")}
     except Exception as e:
         return {"error": str(e)}
 
-def paystack_verify(reference):
-    """Verify a transaction by reference."""
+def flw_verify(transaction_id):
+    """Verify a Flutterwave transaction by ID."""
     try:
         resp = http_requests.get(
-            f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}",
-            headers=paystack_headers(),
+            f"{FLW_BASE_URL}/transactions/{transaction_id}/verify",
+            headers=flw_headers(),
             timeout=15
         )
         data = resp.json()
-        if data.get("status") is True and data["data"]["status"] == "success":
+        if data.get("status") == "success" and data.get("data", {}).get("status") == "successful":
             return data["data"]
         return None
     except Exception:
         return None
 
-def verify_paystack_webhook(payload_body, signature):
-    """Verify Paystack webhook signature (HMAC SHA512)."""
-    if not signature or not PAYSTACK_SECRET_KEY.startswith("sk_"):
-        return False
-    computed = hmac.new(
-        PAYSTACK_SECRET_KEY.encode("utf-8"),
-        payload_body,
-        hashlib.sha512
-    ).hexdigest()
-    return hmac.compare_digest(computed, signature)
+def flw_verify_by_tx_ref(tx_ref):
+    """Verify using tx_ref (fallback)."""
+    try:
+        resp = http_requests.get(
+            f"{FLW_BASE_URL}/transactions/verify_by_reference",
+            headers=flw_headers(),
+            params={"tx_ref": tx_ref},
+            timeout=15
+        )
+        data = resp.json()
+        if data.get("status") == "success" and data.get("data", {}).get("status") == "successful":
+            return data["data"]
+        return None
+    except Exception:
+        return None
 
-def credit_wallet(user_id, amount, reference, description="Wallet funding via Paystack"):
+def credit_wallet(user_id, amount, reference, description="Wallet funding via Flutterwave"):
     """Credit user wallet and record transaction. Returns new balance or None on error."""
     db = get_db()
     # Prevent double-crediting the same reference
@@ -121,7 +136,7 @@ def credit_wallet(user_id, amount, reference, description="Wallet funding via Pa
     )
     db.execute(
         "INSERT INTO notifications (user_id, title, message, type) VALUES (?,?,?,?)",
-        (user_id, "Wallet Credited", f"₦{amount:,.0f} has been added to your wallet via Paystack.", "wallet")
+        (user_id, "Wallet Credited", f"₦{amount:,.0f} has been added to your wallet via Flutterwave.", "wallet")
     )
     db.commit()
     return new_bal
@@ -674,112 +689,113 @@ def wallet():
             flash("Minimum funding is ₦500.", "warning")
             return redirect(url_for("wallet"))
 
-        # Create unique reference
+        # Create unique reference (tx_ref)
         reference = f"SLW-{session['user_id']}-{datetime.now().strftime('%Y%m%d%H%M%S')}-{random.randint(1000,9999)}"
-        callback_url = url_for("paystack_callback", _external=True)
+        callback_url = url_for("flutterwave_callback", _external=True)
 
-        # Initialize Paystack transaction
-        result = paystack_initialize(
+        # Initialize Flutterwave payment
+        result = flw_initialize(
             email=user["email"] or f"user{user['id']}@sewlagos.ng",
             amount_naira=amount,
             reference=reference,
             callback_url=callback_url,
-            metadata={
-                "user_id": user["id"],
-                "purpose": "wallet_funding",
-                "custom_fields": [
-                    {"display_name": "Customer", "variable_name": "customer_name", "value": user["full_name"]},
-                    {"display_name": "Phone", "variable_name": "phone", "value": user["phone"]}
-                ]
-            }
+            customer_name=user["full_name"],
+            phone=user["phone"],
+            meta={"user_id": str(user["id"]), "purpose": "wallet_funding"}
         )
 
         if "error" in result:
             # Fallback for demo when keys are still placeholders
-            if "xxxxxxxx" in PAYSTACK_SECRET_KEY:
-                flash("Paystack keys not configured yet. Using demo credit for testing.", "warning")
-                new_bal = credit_wallet(user["id"], amount, reference + "-DEMO", "Demo wallet funding (replace Paystack keys)")
+            if "xxxxxxxx" in FLW_SECRET_KEY:
+                flash("Flutterwave keys not configured yet. Using demo credit for testing.", "warning")
+                new_bal = credit_wallet(user["id"], amount, reference + "-DEMO", "Demo wallet funding (replace Flutterwave keys)")
                 if new_bal is not None:
                     flash(f"Wallet funded with ₦{amount:,.0f} (demo mode).", "success")
                 return redirect(url_for("wallet"))
             flash(f"Could not start payment: {result['error']}", "danger")
             return redirect(url_for("wallet"))
 
-        # Redirect customer to Paystack checkout
-        return redirect(result["authorization_url"])
+        # Redirect customer to Flutterwave checkout
+        return redirect(result["link"])
 
     return render_template(
         "wallet.html",
         user=user,
         transactions=transactions,
-        paystack_public_key=PAYSTACK_PUBLIC_KEY
+        flw_public_key=FLW_PUBLIC_KEY
     )
 
 
-@app.route("/paystack/callback")
+@app.route("/flutterwave/callback")
 @login_required
-def paystack_callback():
-    """Called by Paystack after customer completes (or cancels) payment."""
-    reference = request.args.get("reference") or request.args.get("trxref")
-    if not reference:
-        flash("No payment reference received.", "danger")
+def flutterwave_callback():
+    """Called by Flutterwave after customer completes (or cancels) payment."""
+    status = request.args.get("status")
+    tx_ref = request.args.get("tx_ref")
+    transaction_id = request.args.get("transaction_id")
+
+    if status != "successful" or not tx_ref:
+        flash("Payment was cancelled or failed.", "warning")
         return redirect(url_for("wallet"))
 
-    # Verify with Paystack
-    data = paystack_verify(reference)
+    # Verify with Flutterwave
+    data = None
+    if transaction_id:
+        data = flw_verify(transaction_id)
     if not data:
-        flash("Payment verification failed or was cancelled.", "warning")
+        data = flw_verify_by_tx_ref(tx_ref)
+
+    if not data:
+        flash("Payment verification failed. If money was deducted, contact support.", "warning")
         return redirect(url_for("wallet"))
 
-    amount_naira = data["amount"] / 100.0  # from kobo
-    metadata = data.get("metadata") or {}
-    user_id = metadata.get("user_id") or session.get("user_id")
+    amount_naira = float(data.get("amount", 0))
+    meta = data.get("meta") or {}
+    user_id = meta.get("user_id") or session.get("user_id")
 
     if not user_id:
         flash("Could not identify user for this payment.", "danger")
         return redirect(url_for("wallet"))
 
-    new_bal = credit_wallet(int(user_id), amount_naira, reference, "Wallet funding via Paystack")
+    new_bal = credit_wallet(int(user_id), amount_naira, tx_ref, "Wallet funding via Flutterwave")
     if new_bal is not None:
         flash(f"Payment successful! ₦{amount_naira:,.0f} has been added to your wallet.", "success")
     else:
-        # Already credited by webhook (common) or error
         flash("Payment received. Your wallet has been updated.", "success")
 
     return redirect(url_for("wallet"))
 
 
-@app.route("/paystack/webhook", methods=["POST"])
-def paystack_webhook():
+@app.route("/flutterwave/webhook", methods=["POST"])
+def flutterwave_webhook():
     """
-    Paystack server-to-server notification.
-    This is the most reliable way to credit wallets (especially bank transfers).
-    Configure this URL in Paystack Dashboard → Settings → API Keys & Webhooks.
+    Flutterwave server-to-server notification (most reliable for bank transfers).
+    Configure this URL in Flutterwave Dashboard → Settings → Webhooks.
+    Also set a Secret Hash and put the same value in FLW_SECRET_HASH env var.
     """
-    signature = request.headers.get("x-paystack-signature", "")
-    payload = request.get_data()
-
-    if not verify_paystack_webhook(payload, signature):
-        # Still return 200 so Paystack does not keep retrying invalid signatures in some cases
-        return jsonify({"status": "invalid signature"}), 400
+    secret_hash = request.headers.get("verif-hash", "")
+    if secret_hash != FLW_SECRET_HASH:
+        return jsonify({"status": "invalid hash"}), 401
 
     try:
-        event = json.loads(payload)
+        event = request.get_json(force=True)
     except Exception:
         return jsonify({"status": "bad payload"}), 400
 
-    if event.get("event") == "charge.success":
-        data = event.get("data", {})
-        reference = data.get("reference")
-        amount_naira = data.get("amount", 0) / 100.0
-        metadata = data.get("metadata") or {}
-        user_id = metadata.get("user_id")
+    # Flutterwave sends different event structures; handle successful charge
+    data = event.get("data") or event
+    status = data.get("status") or event.get("event")
+    if status in ("successful", "charge.completed"):
+        tx_ref = data.get("tx_ref") or data.get("txRef")
+        amount = float(data.get("amount", 0))
+        meta = data.get("meta") or {}
+        user_id = meta.get("user_id")
 
-        if user_id and reference:
-            credit_wallet(int(user_id), amount_naira, reference, "Wallet funding via Paystack (webhook)")
+        if user_id and tx_ref:
+            credit_wallet(int(user_id), amount, tx_ref, "Wallet funding via Flutterwave (webhook)")
 
-    # Always acknowledge quickly
     return jsonify({"status": "ok"}), 200
+
 
 @app.route("/dashboard")
 @login_required

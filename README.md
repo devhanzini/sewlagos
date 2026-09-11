@@ -110,48 +110,52 @@ You can then connect the repo to:
 
 The app creates the SQLite database automatically on first run (`python app.py`).
 
-## Paystack Integration (Wallet Funding)
+## Flutterwave Integration (Wallet Funding)
 
-SewLagos uses **Paystack** for real wallet funding.
+SewLagos uses **Flutterwave** for real wallet funding.
 
 ### How it works
 1. Customer enters amount on the Wallet page
-2. App calls Paystack `transaction/initialize`
-3. Customer is redirected to Paystack (Card / Bank Transfer / USSD)
-4. After payment, Paystack redirects back to `/paystack/callback`
+2. App calls Flutterwave payments API
+3. Customer is redirected to Flutterwave (Card / Bank Transfer / USSD)
+4. After payment, Flutterwave redirects back to `/flutterwave/callback`
 5. App verifies the transaction and credits the wallet
-6. Paystack also sends a **webhook** to `/paystack/webhook` (most reliable for bank transfers)
+6. Flutterwave also sends a **webhook** to `/flutterwave/webhook` (most reliable for bank transfers)
 
 ### Setup (Test Mode – free)
 
-1. Create account at https://dashboard.paystack.com
-2. Go to **Settings → API Keys & Webhooks**
-3. Copy your **Test Secret Key** (`sk_test_...`) and **Test Public Key** (`pk_test_...`)
-4. Set environment variables before running the app:
+1. Login to https://app.flutterwave.com
+2. Go to **Settings → API Keys**
+3. Copy your **Secret Key** (`FLWSECK_TEST-...` or live) and **Public Key**
+4. (Recommended) Go to Settings → Webhooks and set a **Secret Hash**
+5. Set environment variables:
 
 ```bash
 # Linux / macOS
-export PAYSTACK_SECRET_KEY=sk_test_xxxxxxxx
-export PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxx
+export FLW_SECRET_KEY=FLWSECK_TEST-xxxxxxxx
+export FLW_PUBLIC_KEY=FLWPUBK_TEST-xxxxxxxx
+export FLW_SECRET_HASH=your_secret_hash_here
 
 # Windows (Command Prompt)
-set PAYSTACK_SECRET_KEY=sk_test_xxxxxxxx
-set PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxx
+set FLW_SECRET_KEY=FLWSECK_TEST-xxxxxxxx
+set FLW_PUBLIC_KEY=FLWPUBK_TEST-xxxxxxxx
+set FLW_SECRET_HASH=your_secret_hash_here
 
 # Windows (PowerShell)
-$env:PAYSTACK_SECRET_KEY="sk_test_xxxxxxxx"
-$env:PAYSTACK_PUBLIC_KEY="pk_test_xxxxxxxx"
+$env:FLW_SECRET_KEY="FLWSECK_TEST-xxxxxxxx"
+$env:FLW_PUBLIC_KEY="FLWPUBK_TEST-xxxxxxxx"
+$env:FLW_SECRET_HASH="your_secret_hash_here"
 ```
 
-5. (Optional but recommended) Set Webhook URL in Paystack dashboard to:
-   `https://your-domain.com/paystack/webhook`
+6. Set Webhook URL in Flutterwave dashboard to:
+   `https://your-domain.com/flutterwave/webhook`
 
 ### Demo fallback
-If the secret key still contains `xxxxxxxx`, the app will credit the wallet in **demo mode** so you can test the rest of the system without real keys.
+If the secret key still contains `xxxxxxxx`, the app will credit the wallet in **demo mode** so you can test without real keys.
 
 ### Going Live
-1. Complete Paystack business verification (KYC)
-2. Switch to **Live** keys (`sk_live_...` / `pk_live_...`)
-3. Update the environment variables
+1. Complete Flutterwave business verification
+2. Switch to **Live** keys
+3. Update the environment variables on Railway/Render
 4. Point the webhook to your live domain
 
