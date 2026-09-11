@@ -27,8 +27,8 @@ DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sewlagos.db
 
 # ---------- Flutterwave Configuration ----------
 # Get keys from https://app.flutterwave.com → Settings → API Keys
-FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "FLWPUBK_TEST-REDACTED-ROTATE-THIS-KEY")
-FLW_PUBLIC_KEY = os.environ.get("FLW_PUBLIC_KEY", "FLWSECK_TEST-REDACTED-ROTATE-THIS-KEY")
+FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "FLWSECK_TEST-REDACTED-ROTATE-THIS-KEY")
+FLW_PUBLIC_KEY = os.environ.get("FLW_PUBLIC_KEY", "FLWPUBK_TEST-REDACTED-ROTATE-THIS-KEY")
 FLW_SECRET_HASH = os.environ.get("FLW_SECRET_HASH", "sewlagos_webhook_hash")  # Set this in Flutterwave dashboard
 FLW_BASE_URL = "https://api.flutterwave.com/v3"
 
