@@ -27,8 +27,8 @@ DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sewlagos.db
 
 # ---------- Flutterwave Configuration ----------
 # Get keys from https://app.flutterwave.com → Settings → API Keys
-FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "FLWSECK_TEST-REDACTED-ROTATE-THIS-KEY")
-FLW_PUBLIC_KEY = os.environ.get("FLW_PUBLIC_KEY", "FLWPUBK_TEST-REDACTED-ROTATE-THIS-KEY")
+FLW_SECRET_KEY = os.environ.get("FLW_SECRET_KEY", "")
+FLW_PUBLIC_KEY = os.environ.get("FLW_PUBLIC_KEY", "")
 FLW_SECRET_HASH = os.environ.get("FLW_SECRET_HASH", "sewlagos_webhook_hash")  # Set this in Flutterwave dashboard
 FLW_BASE_URL = "https://api.flutterwave.com/v3"
 
@@ -711,8 +711,8 @@ def wallet():
         )
 
         if "error" in result:
-            # Fallback for demo when keys are still placeholders
-            if "xxxxxxxx" in FLW_SECRET_KEY:
+            # Fallback for demo when keys are not configured
+            if not FLW_SECRET_KEY:
                 flash("Flutterwave keys not configured yet. Using demo credit for testing.", "warning")
                 new_bal = credit_wallet(user["id"], amount, reference + "-DEMO", "Demo wallet funding (replace Flutterwave keys)")
                 if new_bal is not None:
