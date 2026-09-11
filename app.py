@@ -22,7 +22,7 @@ import requests as http_requests
 from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "REDACTED-ROTATED-SECRET-KEY")
+app.secret_key = os.environ["SECRET_KEY"]
 DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sewlagos.db")
 
 # ---------- Flutterwave Configuration ----------
